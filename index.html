@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2A2018">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="读书册">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>我的读书册</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── 首页：句子 ── -->
+  <div id="screen-home" class="screen active">
+    <div class="quote-wrap">
+      <div class="quote-deco">§</div>
+      <p class="quote-text" id="quote-text"></p>
+      <div class="quote-rule"></div>
+      <p class="quote-attr" id="quote-attr"></p>
+    </div>
+    <p class="home-hint">轻触进入</p>
+  </div>
+
+  <!-- ── 主应用 ── -->
+  <div id="screen-app" class="screen">
+
+    <!-- 内容区 -->
+    <div id="tab-content">
+
+      <!-- 计划 -->
+      <div id="tab-plan" class="tab-panel active">
+        <div class="panel-header">
+          <h2 class="panel-title">阅读计划</h2>
+          <button class="icon-btn" onclick="App.openExportModal()" title="设置与导出">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </div>
+        <div id="plan-content"></div>
+      </div>
+
+      <!-- 随笔 -->
+      <div id="tab-notes" class="tab-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">随笔</h2>
+        </div>
+        <div class="search-bar-wrap">
+          <div class="search-bar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="text" id="notes-search" placeholder="按关键词、书名搜索…" oninput="App.searchNotes(this.value)">
+            <button id="search-clear" class="search-clear hidden" onclick="App.clearSearch()">✕</button>
+          </div>
+        </div>
+        <div id="notes-content"></div>
+        <button class="fab" onclick="App.openNoteModal()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- AI讨论 -->
+      <div id="tab-ai" class="tab-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">AI 讨论</h2>
+          <button class="icon-btn" onclick="App.openAISettings()" title="设置">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+          </button>
+        </div>
+        <div id="ai-content"></div>
+        <div id="ai-chat-view" class="hidden"></div>
+      </div>
+
+      <!-- 书架 -->
+      <div id="tab-books" class="tab-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">书架</h2>
+        </div>
+        <div class="books-status-tabs">
+          <button class="status-tab active" data-status="在读" onclick="App.switchBookStatus(this)">在读</button>
+          <button class="status-tab" data-status="想读" onclick="App.switchBookStatus(this)">想读</button>
+          <button class="status-tab" data-status="已读" onclick="App.switchBookStatus(this)">已读</button>
+        </div>
+        <div id="books-content"></div>
+        <button class="fab" onclick="App.openBookModal()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+      </div>
+
+    </div><!-- /tab-content -->
+
+    <!-- 底部导航 -->
+    <nav id="bottom-nav">
+      <button class="nav-btn active" data-tab="plan" onclick="App.switchTab('plan')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        <span>计划</span>
+      </button>
+      <button class="nav-btn" data-tab="notes" onclick="App.switchTab('notes')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <span>随笔</span>
+      </button>
+      <button class="nav-btn" data-tab="ai" onclick="App.switchTab('ai')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>讨论</span>
+      </button>
+      <button class="nav-btn" data-tab="books" onclick="App.switchTab('books')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <span>书架</span>
+      </button>
+    </nav>
+
+  </div><!-- /screen-app -->
+
+  <!-- 模态框 -->
+  <div id="modal-overlay" class="modal-overlay hidden" onclick="App.closeModal(event)">
+    <div id="modal-box" class="modal-box">
+      <div id="modal-inner"></div>
+    </div>
+  </div>
+
+  <!-- Toast提示 -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
