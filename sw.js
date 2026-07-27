@@ -1,4 +1,4 @@
-const CACHE = 'reading-v2';
+const CACHE = 'reading-v1';
 const ASSETS = [
   './index.html',
   './style.css',
