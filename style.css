@@ -481,11 +481,17 @@ input, textarea { font-family: var(--sans); color: var(--text); }
 
 /* AI Chat View */
 #ai-chat-view {
-  flex: 1;
+  display: none;
   flex-direction: column;
+  overflow: hidden;
 }
 #ai-chat-view.visible {
   display: flex;
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  z-index: 5;
+  overflow: hidden;
 }
 .chat-header {
   display: flex;
@@ -755,6 +761,7 @@ input, textarea { font-family: var(--sans); color: var(--text); }
   max-height: 92vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding-bottom: 20px;
 }
 .modal-box::-webkit-scrollbar { display: none; }
