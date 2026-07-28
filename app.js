@@ -60,7 +60,8 @@ const Store = {
         model: 'claude-sonnet-4-6',
         provider: 'anthropic',
         deepseekKey: '',
-        deepseekModel: 'deepseek-chat'
+        deepseekModel: 'deepseek-v4-pro',
+        userProfile: ''
       }
     };
   }
@@ -466,10 +467,15 @@ const App = {
         <div class="modal-section">
           <div class="modal-label">模型</div>
           <select class="modal-select" id="model-deepseek">
-            <option value="deepseek-chat" ${(s.deepseekModel||'deepseek-chat')==='deepseek-chat'?'selected':''}>DeepSeek V3</option>
-            <option value="deepseek-reasoner" ${s.deepseekModel==='deepseek-reasoner'?'selected':''}>DeepSeek R1</option>
+            <option value="deepseek-v4-pro" ${(s.deepseekModel||'deepseek-v4-pro')==='deepseek-v4-pro'?'selected':''}>DeepSeek V4 Pro（推荐）</option>
+            <option value="deepseek-v4-flash" ${s.deepseekModel==='deepseek-v4-flash'?'selected':''}>DeepSeek V4 Flash（更快）</option>
           </select>
         </div>
+      </div>
+      <div class="modal-divider"></div>
+      <div class="modal-section">
+        <div class="modal-label">关于我（用户简介）</div>
+        <textarea class="modal-textarea" id="user-profile" placeholder="写几句关于自己的话，AI 每次对话都会看到这段简介。&#10;比如：喜欢文学和哲学，最近在读俄国小说，不喜欢被迎合，希望对话直接一点。" style="min-height:90px">${escHtml(s.userProfile||'')}</textarea>
       </div>
       <div class="modal-section" style="font-size:12px;color:var(--text-3);line-height:1.8">
         API Key 仅存在本地，不会上传。
@@ -495,6 +501,7 @@ const App = {
       d.settings.model = document.getElementById('model-anthropic')?.value ?? d.settings.model;
       d.settings.deepseekKey = document.getElementById('key-deepseek')?.value?.trim() ?? d.settings.deepseekKey;
       d.settings.deepseekModel = document.getElementById('model-deepseek')?.value ?? d.settings.deepseekModel;
+      d.settings.userProfile = document.getElementById('user-profile')?.value?.trim() ?? d.settings.userProfile;
     });
     this.closeModal();
     this.renderAI();
@@ -509,8 +516,14 @@ const App = {
         <div class="modal-label">你想聊什么？</div>
         <textarea class="modal-textarea" id="new-disc-input" placeholder="关于最近读的某本书，或者一个读书相关的问题…" style="min-height:100px"></textarea>
       </div>
-      <div class="modal-section" style="font-size:13px;color:var(--text-3)">
-        已标记「AI可阅读」的随笔会自动作为上下文提供给 AI。
+      <div class="modal-section">
+        <div class="modal-label">带入随笔范围</div>
+        <div class="status-btns">
+          <div class="status-btn active" data-range="recent30" onclick="App._setNoteRange(this)">最近30天</div>
+          <div class="status-btn" data-range="all" onclick="App._setNoteRange(this)">全部</div>
+          <div class="status-btn" data-range="none" onclick="App._setNoteRange(this)">不带入</div>
+        </div>
+        <input type="hidden" id="note-range" value="recent30">
       </div>
       <div class="modal-actions">
         <button class="btn-secondary" onclick="App.closeModal()">取消</button>
@@ -519,17 +532,24 @@ const App = {
     setTimeout(() => document.getElementById('new-disc-input')?.focus(), 80);
   },
 
+  _setNoteRange(btn) {
+    btn.closest('.status-btns').querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('note-range').value = btn.dataset.range;
+  },
+
   async createAndSendDiscussion() {
     const content = document.getElementById('new-disc-input')?.value?.trim();
     if (!content) { this.toast('请输入内容', 'error'); return; }
+    const noteRange = document.getElementById('note-range')?.value || 'recent30';
     this.closeModal();
 
-    const data = Store.get();
     const discId = uid('d');
     const disc = {
       id: discId,
       title: content.slice(0, 40) + (content.length > 40 ? '…' : ''),
       createdAt: nowISO(),
+      noteRange,
       messages: [{ role: 'user', content, time: nowISO() }]
     };
     Store.update(d => d.discussions.push(disc));
@@ -641,11 +661,28 @@ const App = {
       this._scrollChatBottom();
     }
 
-    // 系统提示 + AI可阅读随笔
-    const aiNotes = data.notes.filter(n => n.aiEnabled);
-    const sysParts = ['你是一位温和的读书讨论伴侣，对文学、哲学、历史都有涉猎。用自然、真诚的语气回应，不要过于正式。'];
+    // 系统提示
+    const aiNotes = data.notes.filter(n => {
+      if (!n.aiEnabled) return false;
+      if (disc.noteRange === 'none') return false;
+      if (disc.noteRange === 'recent30') {
+        const daysAgo = (Date.now() - new Date(n.datetime)) / (1000 * 60 * 60 * 24);
+        return daysAgo <= 30;
+      }
+      return true; // 'all'
+    });
+
+    const sysParts = [
+      '你是用户的读书讨论伙伴，对文学、哲学、历史都有涉猎。用自然、真诚的语气回应，不要过于正式。',
+      '重要：不要一味迎合用户。当发现观点有盲点、逻辑有漏洞、或值得商榷的地方，请直接但温和地指出——真实的反馈比单纯的认同更有价值。'
+    ];
+
+    if (s.userProfile) {
+      sysParts.push(`\n关于用户：${s.userProfile}`);
+    }
+
     if (aiNotes.length > 0) {
-      sysParts.push('\n以下是用户的部分读书随笔，供你参考：\n');
+      sysParts.push('\n以下是用户的读书随笔，供参考：');
       aiNotes.forEach(n => sysParts.push(`【${n.bookTitle || '无书名'}】${fmtDate(n.datetime)}\n${n.content}`));
     }
     const systemPrompt = sysParts.join('\n');
